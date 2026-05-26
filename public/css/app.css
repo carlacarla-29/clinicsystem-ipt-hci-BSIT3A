@@ -795,28 +795,6 @@ textarea {
     gap: 1.25rem;
 }
 
-.notification-button {
-    position: relative;
-    display: none;
-    color: #6b7280;
-    font-size: 1.2rem;
-}
-
-.notification-button strong {
-    position: absolute;
-    top: -0.35rem;
-    right: -0.55rem;
-    display: flex;
-    width: 1.25rem;
-    height: 1.25rem;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    background: var(--color-primary);
-    color: #fff;
-    font-size: 0.65rem;
-}
-
 .user-menu {
     gap: 0.75rem;
     border-radius: 0.5rem;
@@ -1316,7 +1294,7 @@ textarea {
     }
 
     .dashboard-list-item time,
-    .notification-button,
+    .notification-,
     .user-details,
     .logout-form {
         display: block;

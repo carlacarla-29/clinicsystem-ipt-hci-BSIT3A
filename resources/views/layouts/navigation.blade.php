@@ -59,8 +59,8 @@
 
         <div class="topbar-actions">
             <div class="notification-button">
-                <span>N</span>
-                <strong>3</strong>
+                <span></span>
+                <strong></strong>
             </div>
 
             <div class="user-menu">
