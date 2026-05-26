@@ -14,15 +14,15 @@
         <!-- Styles -->
         <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-app-bg">
+    <body class="app-body">
+        <div class="app-shell">
             @include('layouts.navigation')
 
-            <div class="lg:pl-64">
+            <div class="app-main">
                 <!-- Page Heading -->
                 @isset($header)
-                    <header class="bg-app-bg">
-                        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-10">
+                    <header class="page-header">
+                        <div class="page-header-inner">
                             {{ $header }}
                         </div>
                     </header>

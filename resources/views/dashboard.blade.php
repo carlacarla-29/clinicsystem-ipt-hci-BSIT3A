@@ -1,71 +1,63 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="dashboard-header">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-                <p class="mt-1 text-sm text-gray-500">Welcome back, {{ Auth::user()->name }}!</p>
+                <h1>Dashboard</h1>
+                <p>Welcome back, {{ Auth::user()->name }}!</p>
             </div>
 
-            <a href="{{ route('visits.create') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-dark">
-                <span class="text-lg leading-none">+</span>
+            <a href="{{ route('visits.create') }}" class="dashboard-add-button">
+                <span>+</span>
                 <span>Add Student Visit</span>
             </a>
         </div>
     </x-slot>
 
-    <div class="pb-8">
-        <div class="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-10">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-light text-3xl text-primary-dark">♧</div>
-                        <div>
-                            <p class="text-sm text-gray-500">Visits Today</p>
-                            <p class="mt-2 text-3xl font-bold text-gray-900">{{ $todayVisits }}</p>
-                            <p class="mt-2 text-xs text-gray-500"><span class="font-semibold text-primary-dark">↑</span> {{ $dailyVisits->sum('count') }} this week</p>
-                        </div>
+    <div class="dashboard-page">
+        <div class="dashboard-container">
+            <div class="dashboard-stat-grid">
+                <div class="dashboard-stat-card">
+                    <div class="dashboard-stat-icon dashboard-stat-teal">V</div>
+                    <div>
+                        <p>Visits Today</p>
+                        <strong>{{ $todayVisits }}</strong>
+                        <span>{{ $dailyVisits->sum('count') }} this week</span>
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-violet-50 text-3xl text-violet-600">▾</div>
-                        <div>
-                            <p class="text-sm text-gray-500">New Students</p>
-                            <p class="mt-2 text-3xl font-bold text-gray-900">{{ $newStudentsToday }}</p>
-                            <p class="mt-2 text-xs text-gray-500"><span class="font-semibold text-primary-dark">↑</span> {{ $dailyNewStudents->sum('count') }} this week</p>
-                        </div>
+                <div class="dashboard-stat-card">
+                    <div class="dashboard-stat-icon dashboard-stat-purple">S</div>
+                    <div>
+                        <p>New Students</p>
+                        <strong>{{ $newStudentsToday }}</strong>
+                        <span>{{ $dailyNewStudents->sum('count') }} this week</span>
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-amber-50 text-3xl text-amber-600">▣</div>
-                        <div>
-                            <p class="text-sm text-gray-500">Medicines Dispensed</p>
-                            <p class="mt-2 text-3xl font-bold text-gray-900">{{ $medicinesDispensedToday }}</p>
-                            <p class="mt-2 text-xs text-gray-500"><span class="font-semibold text-primary-dark">↑</span> {{ $dailyMedicinesDispensed->sum('count') }} last 7 days</p>
-                        </div>
+                <div class="dashboard-stat-card">
+                    <div class="dashboard-stat-icon dashboard-stat-amber">Rx</div>
+                    <div>
+                        <p>Medicines Dispensed</p>
+                        <strong>{{ $medicinesDispensedToday }}</strong>
+                        <span>{{ $dailyMedicinesDispensed->sum('count') }} last 7 days</span>
                     </div>
                 </div>
 
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-sky-50 text-3xl text-sky-600">□</div>
-                        <div>
-                            <p class="text-sm text-gray-500">Low Stock Items</p>
-                            <p class="mt-2 text-3xl font-bold text-gray-900">{{ $lowStockMedicines->count() }}</p>
-                            <a href="{{ route('medicines.index') }}" class="mt-2 inline-flex text-xs font-semibold text-primary-dark hover:underline">View inventory →</a>
-                        </div>
+                <div class="dashboard-stat-card">
+                    <div class="dashboard-stat-icon dashboard-stat-blue">!</div>
+                    <div>
+                        <p>Low Stock Items</p>
+                        <strong>{{ $lowStockMedicines->count() }}</strong>
+                        <a href="{{ route('medicines.index') }}">View inventory</a>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-900">Visits Overview <span class="font-normal text-gray-500">(This Week)</span></h2>
-                        <span class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600">This Week</span>
+            <div class="dashboard-two-column">
+                <section class="dashboard-panel">
+                    <div class="dashboard-panel-header">
+                        <h2>Visits Overview <span>(This Week)</span></h2>
+                        <span class="dashboard-period-badge">This Week</span>
                     </div>
 
                     @php
@@ -77,8 +69,8 @@
                         })->implode(' ');
                     @endphp
 
-                    <div class="h-64">
-                        <svg viewBox="0 0 520 205" class="h-full w-full overflow-visible">
+                    <div class="dashboard-chart">
+                        <svg viewBox="0 0 520 205">
                             <line x1="24" y1="42" x2="500" y2="42" stroke="#E5E7EB" stroke-dasharray="4 4" />
                             <line x1="24" y1="82" x2="500" y2="82" stroke="#E5E7EB" stroke-dasharray="4 4" />
                             <line x1="24" y1="122" x2="500" y2="122" stroke="#E5E7EB" stroke-dasharray="4 4" />
@@ -90,15 +82,16 @@
                                     $y = 160 - (($day['count'] / $maxVisits) * 118);
                                 @endphp
                                 <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="#0DD7C9" />
-                                <text x="{{ $x }}" y="{{ $y - 14 }}" text-anchor="middle" class="fill-gray-900 text-[13px] font-semibold">{{ $day['count'] }}</text>
-                                <text x="{{ $x }}" y="190" text-anchor="middle" class="fill-gray-500 text-[12px]">{{ $day['label'] }}</text>
+                                <text x="{{ $x }}" y="{{ $y - 14 }}" text-anchor="middle" class="chart-value">{{ $day['count'] }}</text>
+                                <text x="{{ $x }}" y="190" text-anchor="middle" class="chart-label">{{ $day['label'] }}</text>
                             @endforeach
                         </svg>
                     </div>
-                </div>
+                </section>
 
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <h2 class="mb-5 text-base font-semibold text-gray-900">Top Complaints <span class="font-normal text-gray-500">(This Week)</span></h2>
+                <section class="dashboard-panel">
+                    <h2 class="dashboard-section-title">Top Complaints <span>(This Week)</span></h2>
+
                     @php
                         $complaintColors = ['#0DD7C9', '#7C3AED', '#F59E0B', '#0EA5E9', '#D1D5DB'];
                         $complaintTotal = max((int) $topComplaints->sum('count'), 1);
@@ -113,94 +106,97 @@
                         })->implode(', ');
                         $complaintGradient = $complaintGradient ?: '#E5E7EB 0% 100%';
                     @endphp
+
                     <div class="complaints-grid">
-                        <div class="mx-auto h-44 w-44 rounded-full p-8" style="background: conic-gradient({{ $complaintGradient }});">
-                            <div class="h-full w-full rounded-full bg-white"></div>
+                        <div class="complaints-chart" style="background: conic-gradient({{ $complaintGradient }});">
+                            <div></div>
                         </div>
-                        <div class="min-w-0 space-y-3">
+
+                        <div class="complaints-list">
                             @forelse($topComplaints->take(5) as $index => $item)
                                 @php($percentage = round(((int) $item->count / $complaintTotal) * 100))
-                                <div class="flex min-w-0 items-start justify-between gap-4">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <span class="h-2.5 w-2.5 rounded-full" style="background-color: {{ $complaintColors[$index] ?? '#D1D5DB' }}"></span>
-                                            <p class="min-w-0 truncate text-sm font-medium text-gray-700">{{ $item->complaint }}</p>
+                                <div class="complaint-item">
+                                    <div>
+                                        <div class="complaint-name">
+                                            <span style="background-color: {{ $complaintColors[$index] ?? '#D1D5DB' }}"></span>
+                                            <p>{{ $item->complaint }}</p>
                                         </div>
-                                        <p class="mt-1 truncate pl-5 text-xs text-gray-500">{{ $item->student_names }}</p>
+                                        <small>{{ $item->student_names }}</small>
                                     </div>
-                                    <span class="shrink-0 text-sm font-semibold text-gray-900">{{ $item->count }} <span class="font-normal text-gray-500">({{ $percentage }}%)</span></span>
+                                    <strong>{{ $item->count }} <span>({{ $percentage }}%)</span></strong>
                                 </div>
                             @empty
-                                <p class="text-sm text-gray-400">No complaint data yet.</p>
+                                <p class="empty-text">No complaint data yet.</p>
                             @endforelse
-                            <a href="{{ route('visits.index') }}" class="complaints-action mt-4 inline-flex w-full justify-center rounded-lg border border-primary/40 px-4 py-2 text-sm font-semibold text-primary-dark hover:bg-primary-light">
+
+                            <a href="{{ route('visits.index') }}" class="complaints-action">
                                 View all complaints
                             </a>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-900">Recent Visits</h2>
-                        <a href="{{ route('visits.index') }}" class="text-xs font-semibold text-primary-dark hover:underline">View all</a>
+            <div class="dashboard-two-column">
+                <section class="dashboard-panel">
+                    <div class="dashboard-panel-header">
+                        <h2>Recent Visits</h2>
+                        <a href="{{ route('visits.index') }}">View all</a>
                     </div>
-                    <div class="divide-y divide-gray-100">
+
+                    <div class="dashboard-list">
                         @forelse($recentVisits->take(4) as $visit)
                             @php($initials = collect(explode(' ', $visit->student->name ?? 'NA'))->filter()->map(fn ($part) => strtoupper(substr($part, 0, 1)))->take(2)->implode(''))
-                            <div class="flex items-center gap-4 py-3">
-                                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-light text-sm font-bold text-primary-dark">{{ $initials ?: 'NA' }}</div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-sm font-semibold text-gray-900">{{ $visit->student->name ?? 'Unknown' }}</p>
-                                    <p class="truncate text-xs text-gray-500">{{ $visit->complaint }}</p>
+                            <div class="dashboard-list-item">
+                                <div class="dashboard-avatar">{{ $initials ?: 'NA' }}</div>
+                                <div class="dashboard-list-main">
+                                    <p>{{ $visit->student->name ?? 'Unknown' }}</p>
+                                    <span>{{ $visit->complaint }}</span>
                                 </div>
-                                <p class="hidden shrink-0 text-xs text-gray-500 sm:block">{{ $visit->visited_at->format('M d, h:i A') }}</p>
-                                <span class="shrink-0 rounded-lg px-3 py-1 text-xs font-semibold
-                                    @if($visit->status === 'treated') bg-green-50 text-green-700
-                                    @elseif($visit->status === 'referred') bg-red-50 text-red-700
-                                    @else bg-amber-50 text-amber-700 @endif">
+                                <time>{{ $visit->visited_at->format('M d, h:i A') }}</time>
+                                <span class="dashboard-status dashboard-status-{{ $visit->status }}">
                                     {{ ucfirst($visit->status) }}
                                 </span>
                             </div>
                         @empty
-                            <p class="py-4 text-sm text-gray-400">No visits recorded yet.</p>
+                            <p class="empty-text">No visits recorded yet.</p>
                         @endforelse
                     </div>
-                </div>
+                </section>
 
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <h2 class="text-base font-semibold text-gray-900">Low Stock Alerts</h2>
-                        <a href="{{ route('medicines.index') }}" class="text-xs font-semibold text-primary-dark hover:underline">View all</a>
+                <section class="dashboard-panel">
+                    <div class="dashboard-panel-header">
+                        <h2>Low Stock Alerts</h2>
+                        <a href="{{ route('medicines.index') }}">View all</a>
                     </div>
-                    <div class="space-y-4">
+
+                    <div class="stock-list">
                         @forelse($lowStockMedicines->take(3) as $medicine)
                             @php($percent = min(100, max(6, $medicine->quantity * 10)))
-                            <div class="flex items-center gap-4">
-                                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500">◇</div>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center justify-between gap-3">
+                            <div class="stock-item">
+                                <div class="stock-icon">!</div>
+                                <div class="stock-main">
+                                    <div class="stock-row">
                                         <div>
-                                            <p class="truncate text-sm font-semibold text-gray-900">{{ $medicine->name }}</p>
-                                            <p class="text-xs text-gray-500">{{ ucfirst($medicine->unit) }}</p>
+                                            <p>{{ $medicine->name }}</p>
+                                            <span>{{ ucfirst($medicine->unit) }}</span>
                                         </div>
-                                        <span class="shrink-0 text-xs font-bold text-red-500">{{ $medicine->quantity }} left</span>
+                                        <strong>{{ $medicine->quantity }} left</strong>
                                     </div>
-                                    <div class="mt-2 h-1.5 rounded-full bg-gray-200">
-                                        <div class="h-1.5 rounded-full bg-red-500" style="width: {{ $percent }}%"></div>
+                                    <div class="stock-meter">
+                                        <div style="width: {{ $percent }}%"></div>
                                     </div>
                                 </div>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-400">No low stock alerts.</p>
+                            <p class="empty-text">No low stock alerts.</p>
                         @endforelse
                     </div>
-                    <a href="{{ route('medicines.index') }}" class="mt-5 inline-flex w-full justify-center rounded-lg border border-primary/40 px-4 py-2 text-sm font-semibold text-primary-dark hover:bg-primary-light">
+
+                    <a href="{{ route('medicines.index') }}" class="dashboard-panel-action">
                         Manage Inventory
                     </a>
-                </div>
+                </section>
             </div>
         </div>
     </div>

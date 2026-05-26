@@ -47,24 +47,29 @@ class DashboardController extends Controller
      */
     public function index(Request $request): View
     {
+        $userId = (int) $request->user()->id;
+
         // -------------------------------------------------------
         // STAT CARDS
         // -------------------------------------------------------
 
         // Count visits where the date portion of visited_at equals today.
         // today() is a Laravel helper that returns Carbon::today() (midnight of today).
-        $todayVisits = Visit::whereDate('visited_at', today())->count();
+        $todayVisits = Visit::ownedBy($userId)->whereDate('visited_at', today())->count();
 
         // Total visits ever recorded in the system.
-        $totalVisits = Visit::count();
+        $totalVisits = Visit::ownedBy($userId)->count();
 
         // Total unique students registered in the system.
-        $totalStudents = Student::count();
+        $totalStudents = Student::ownedBy($userId)->count();
 
-        $newStudentsToday = Student::whereDate('created_at', today())->count();
+        $newStudentsToday = Student::ownedBy($userId)->whereDate('created_at', today())->count();
 
         $medicinesDispensedToday = DB::table('visit_medicines')
             ->join('visits', 'visit_medicines.visit_id', '=', 'visits.id')
+            ->join('medicines', 'visit_medicines.medicine_id', '=', 'medicines.id')
+            ->where('visits.recorded_by', $userId)
+            ->where('medicines.user_id', $userId)
             ->whereDate('visits.visited_at', today())
             ->sum('visit_medicines.quantity_given');
 
@@ -74,13 +79,15 @@ class DashboardController extends Controller
         $dates = collect(CarbonPeriod::create(now()->subDays(6)->toDateString(), today()->toDateString()))
             ->map(fn ($date) => $date->format('Y-m-d'));
 
-        $visitCountsByDate = Visit::selectRaw('DATE(visited_at) as date, COUNT(*) as count')
+        $visitCountsByDate = Visit::ownedBy($userId)
+            ->selectRaw('DATE(visited_at) as date, COUNT(*) as count')
             ->where('visited_at', '>=', now()->subDays(6)->startOfDay())
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('count', 'date');
 
-        $studentCountsByDate = Student::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+        $studentCountsByDate = Student::ownedBy($userId)
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->where('created_at', '>=', now()->subDays(6)->startOfDay())
             ->groupBy('date')
             ->orderBy('date')
@@ -88,7 +95,10 @@ class DashboardController extends Controller
 
         $medicineCountsByDate = DB::table('visit_medicines')
             ->join('visits', 'visit_medicines.visit_id', '=', 'visits.id')
+            ->join('medicines', 'visit_medicines.medicine_id', '=', 'medicines.id')
             ->selectRaw('DATE(visits.visited_at) as date, SUM(visit_medicines.quantity_given) as count')
+            ->where('visits.recorded_by', $userId)
+            ->where('medicines.user_id', $userId)
             ->where('visits.visited_at', '>=', now()->subDays(6)->startOfDay())
             ->groupBy('date')
             ->orderBy('date')
@@ -114,6 +124,8 @@ class DashboardController extends Controller
             ->join('visits', 'visit_medicines.visit_id', '=', 'visits.id')
             ->select('medicines.name', 'medicines.unit')
             ->selectRaw('SUM(visit_medicines.quantity_given) as total_dispensed')
+            ->where('medicines.user_id', $userId)
+            ->where('visits.recorded_by', $userId)
             ->where('visits.visited_at', '>=', now()->subDays(6)->startOfDay())
             ->groupBy('medicines.id', 'medicines.name', 'medicines.unit')
             ->orderByDesc('total_dispensed')
@@ -130,6 +142,8 @@ class DashboardController extends Controller
             ->select('visits.complaint')
             ->selectRaw('COUNT(*) as count')
             ->selectRaw('GROUP_CONCAT(DISTINCT students.name ORDER BY students.name SEPARATOR ", ") as student_names')
+            ->where('visits.recorded_by', $userId)
+            ->where('students.user_id', $userId)
             ->where('visits.visited_at', '>=', now()->subDays(6)->startOfDay())
             ->groupBy('visits.complaint')
             ->orderByDesc('count')
@@ -141,7 +155,8 @@ class DashboardController extends Controller
         // -------------------------------------------------------
         // Flags any medicine with 10 or fewer units remaining.
         // The number 10 is a reasonable "reorder point" for a school clinic.
-        $lowStockMedicines = Medicine::where('quantity', '<=', 10)
+        $lowStockMedicines = Medicine::ownedBy($userId)
+            ->where('quantity', '<=', 10)
             ->orderBy('quantity')
             ->get();
 
@@ -150,7 +165,8 @@ class DashboardController extends Controller
         // -------------------------------------------------------
         // Allow a simple `q` query parameter to filter medicines by name.
         // If no query provided, return the first 10 ordered by name.
-        $medicines = Medicine::when($request->query('q'), function ($query, $q) {
+        $medicines = Medicine::ownedBy($userId)
+            ->when($request->query('q'), function ($query, $q) {
                 $query->where('name', 'like', "%{$q}%");
             })
             ->orderBy('name')
@@ -163,6 +179,7 @@ class DashboardController extends Controller
         // without triggering N+1 queries (one query per visit).
         // with('student') = JOIN equivalent that runs in 2 queries total.
         $recentVisits = Visit::with('student')
+            ->ownedBy($userId)
             ->orderByDesc('visited_at')
             ->limit(5)
             ->get();

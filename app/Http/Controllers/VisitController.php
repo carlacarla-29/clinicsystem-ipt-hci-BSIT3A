@@ -69,6 +69,8 @@ class VisitController extends Controller
      */
     public function index(Request $request): View
     {
+        $userId = (int) $request->user()->id;
+
         // Start building the query — we'll add conditions based on the request.
         // with('student') eager-loads the related student for each visit (avoids N+1).
         $period = $request->input('period', 'today');
@@ -78,7 +80,9 @@ class VisitController extends Controller
             $period = 'custom';
         }
 
-        $query = Visit::with('student')->orderByDesc('visited_at');
+        $query = Visit::with('student')
+            ->ownedBy($userId)
+            ->orderByDesc('visited_at');
 
         // --- Search Filter ---
         // $request->filled('search') is true only if 'search' is present AND not empty.
@@ -132,7 +136,7 @@ class VisitController extends Controller
         $visits = $query->paginate(10)->withQueryString();
 
         // Count today's visits separately for a stat badge in the view.
-        $todayCount = Visit::whereDate('visited_at', today())->count();
+        $todayCount = Visit::ownedBy($userId)->whereDate('visited_at', today())->count();
 
         return view('visits.index', compact(
             'visits',
@@ -155,12 +159,14 @@ class VisitController extends Controller
      */
     public function create(): View
     {
+        $userId = (int) auth()->id();
+
         // Get all students for the dropdown, sorted alphabetically.
-        $students = Student::orderBy('name')->get();
+        $students = Student::ownedBy($userId)->orderBy('name')->get();
 
         // Only show medicines that still have stock (quantity > 0).
         // No point showing a medicine you can't dispense.
-        $medicines = Medicine::where('quantity', '>', 0)->orderBy('name')->get();
+        $medicines = Medicine::ownedBy($userId)->where('quantity', '>', 0)->orderBy('name')->get();
 
         return view('visits.create', compact('students', 'medicines'));
     }
@@ -183,11 +189,14 @@ class VisitController extends Controller
      */
     public function store(StoreVisitRequest $request): RedirectResponse
     {
+        $validated = $request->validated();
+        unset($validated['medicines']);
+
         // Create the visit. We merge in recorded_by (the currently logged-in user's ID)
         // because that field isn't in the form — it's set server-side for security.
         // auth()->id() returns the ID of the currently authenticated user.
         $visit = Visit::create([
-            ...$request->validated(),   // spread all validated fields
+            ...$validated,   // spread all validated fields
             'recorded_by' => auth()->id(),
         ]);
 
@@ -203,7 +212,7 @@ class VisitController extends Controller
 
             foreach ($request->medicines as $medicineId => $qty) {
                 // Validate that the medicine exists and has enough stock.
-                $medicine = Medicine::find($medicineId);
+                $medicine = Medicine::ownedBy((int) auth()->id())->find($medicineId);
 
                 if ($medicine && $medicine->quantity >= $qty && $qty > 0) {
                     // Store for the pivot table: quantity_given per medicine
@@ -242,6 +251,8 @@ class VisitController extends Controller
      */
     public function show(Visit $visit): View
     {
+        $this->authorizeVisit($visit);
+
         // Load all relationships needed by the view in one go.
         $visit->load('student', 'recorder', 'medicines');
 
@@ -256,10 +267,13 @@ class VisitController extends Controller
      */
     public function edit(Visit $visit): View
     {
+        $this->authorizeVisit($visit);
+
         $visit->load('medicines'); // load currently attached medicines
 
-        $students  = Student::orderBy('name')->get();
-        $medicines = Medicine::orderBy('name')->get(); // all medicines for the form
+        $userId = (int) auth()->id();
+        $students  = Student::ownedBy($userId)->orderBy('name')->get();
+        $medicines = Medicine::ownedBy($userId)->orderBy('name')->get(); // all medicines for the form
 
         return view('visits.edit', compact('visit', 'students', 'medicines'));
     }
@@ -276,8 +290,12 @@ class VisitController extends Controller
      */
     public function update(StoreVisitRequest $request, Visit $visit): RedirectResponse
     {
+        $this->authorizeVisit($visit);
+        $validated = $request->validated();
+        unset($validated['medicines']);
+
         // Update only the validated fields on the existing model.
-        $visit->update($request->validated());
+        $visit->update($validated);
 
         return redirect()
             ->route('visits.index')
@@ -296,6 +314,8 @@ class VisitController extends Controller
      */
     public function destroy(Visit $visit): RedirectResponse
     {
+        $this->authorizeVisit($visit);
+
         $visit->delete();
 
         return redirect()
@@ -324,8 +344,12 @@ class VisitController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        $userId = (int) $request->user()->id;
+
         // Build the query with optional date filters (same as index()).
-        $query = Visit::with('student')->orderByDesc('visited_at');
+        $query = Visit::with('student')
+            ->ownedBy($userId)
+            ->orderByDesc('visited_at');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -425,5 +449,10 @@ class VisitController extends Controller
         return redirect()
             ->route('visits.index')
             ->with('info', 'PDF export coming soon. Install barryvdh/laravel-dompdf to enable.');
+    }
+
+    private function authorizeVisit(Visit $visit): void
+    {
+        abort_unless($visit->recorded_by === auth()->id(), 404);
     }
 }

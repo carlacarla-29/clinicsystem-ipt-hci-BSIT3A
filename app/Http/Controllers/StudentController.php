@@ -42,7 +42,10 @@ class StudentController extends Controller
      */
     public function index(Request $request): View
     {
+        $userId = (int) $request->user()->id;
+
         $query = Student::with('latestVisit')
+                        ->ownedBy($userId)
                         ->withCount('visits') // adds a visits_count column — useful for display
                         ->orderBy('name');
 
@@ -77,21 +80,24 @@ class StudentController extends Controller
             });
         }
 
-        $totalStudents = Student::count();
-        $newThisMonth = Student::whereMonth('created_at', now()->month)
+        $totalStudents = Student::ownedBy($userId)->count();
+        $newThisMonth = Student::ownedBy($userId)
+            ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
-        $studentsSeenToday = Student::whereHas('visits', fn ($query) =>
-            $query->whereDate('visited_at', today())
+        $studentsSeenToday = Student::ownedBy($userId)->whereHas('visits', fn ($query) =>
+            $query->ownedBy($userId)->whereDate('visited_at', today())
         )->count();
-        $frequentVisitors = Student::has('visits', '>=', 2)->count();
+        $frequentVisitors = Student::ownedBy($userId)->has('visits', '>=', 2)->count();
 
         $gradeLevels = Student::select('grade_level')
+            ->ownedBy($userId)
             ->whereNotNull('grade_level')
             ->distinct()
             ->orderBy('grade_level')
             ->pluck('grade_level');
         $sections = Student::select('section')
+            ->ownedBy($userId)
             ->whereNotNull('section')
             ->when($request->filled('grade_level'), fn ($query) =>
                 $query->where('grade_level', $request->grade_level)
@@ -139,7 +145,10 @@ class StudentController extends Controller
     {
         // Create the student record from the validated data.
         // Mass assignment is safe here because $fillable is set in the Student model.
-        Student::create($request->validated());
+        Student::create([
+            ...$request->validated(),
+            'user_id' => $request->user()->id,
+        ]);
 
         return redirect()
             ->route('students.index')
@@ -157,9 +166,14 @@ class StudentController extends Controller
      */
     public function show(Student $student): View
     {
+        $this->authorizeStudent($student);
+
         // Load visits relationship, sorted newest first, paginated.
         // Using loadMissing() avoids reloading if already loaded elsewhere.
-        $visits = $student->visits()->orderByDesc('visited_at')->paginate(10);
+        $visits = $student->visits()
+            ->ownedBy((int) auth()->id())
+            ->orderByDesc('visited_at')
+            ->paginate(10);
 
         return view('students.show', compact('student', 'visits'));
     }
@@ -172,6 +186,8 @@ class StudentController extends Controller
      */
     public function edit(Student $student): View
     {
+        $this->authorizeStudent($student);
+
         // Pass the student to the view so the form can pre-fill with current data.
         // In Blade: value="{{ old('name', $student->name) }}"
         // old() returns the previously submitted value if validation failed,
@@ -192,6 +208,8 @@ class StudentController extends Controller
      */
     public function update(StoreStudentRequest $request, Student $student): RedirectResponse
     {
+        $this->authorizeStudent($student);
+
         // update() fills only the $fillable columns from validated data.
         $student->update($request->validated());
 
@@ -218,10 +236,17 @@ class StudentController extends Controller
      */
     public function destroy(Student $student): RedirectResponse
     {
+        $this->authorizeStudent($student);
+
         $student->delete();
 
         return redirect()
             ->route('students.index')
             ->with('success', 'Student and all related visits have been deleted.');
+    }
+
+    private function authorizeStudent(Student $student): void
+    {
+        abort_unless($student->user_id === auth()->id(), 404);
     }
 }

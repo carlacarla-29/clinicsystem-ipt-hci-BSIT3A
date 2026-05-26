@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * ============================================================
@@ -64,9 +65,16 @@ class StoreVisitRequest extends FormRequest
      */
     public function rules(): array
     {
+        $userId = (int) $this->user()->id;
+
         return [
             // student_id must match a real record in the students table
-            'student_id' => ['required', 'exists:students,id'],
+            'student_id' => [
+                'required',
+                Rule::exists('students', 'id')->where(fn ($query) =>
+                    $query->where('user_id', $userId)
+                ),
+            ],
 
             // Complaint is required and must be meaningful (min 5 chars)
             'complaint'  => ['required', 'string', 'min:5'],
@@ -80,6 +88,8 @@ class StoreVisitRequest extends FormRequest
 
             // Visit time — defaults to now() in the controller if not provided
             'visited_at' => ['required', 'date'],
+            'medicines' => ['nullable', 'array'],
+            'medicines.*' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

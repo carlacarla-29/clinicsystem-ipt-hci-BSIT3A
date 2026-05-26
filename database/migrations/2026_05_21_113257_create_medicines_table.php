@@ -10,10 +10,12 @@ return new class extends Migration
     {
         Schema::create('medicines', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
             $table->string('unit');       // tablet, ml, sachet, capsule, piece
             $table->integer('quantity');  // current stock
             $table->timestamps();
+            $table->unique(['user_id', 'name']);
         });
 
         Schema::create('visit_medicines', function (Blueprint $table) {

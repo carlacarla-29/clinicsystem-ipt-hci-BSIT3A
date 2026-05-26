@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Medicine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -41,17 +43,70 @@ class MedicineController extends Controller
      *
      * @return View
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        // Order by name for easy scanning. All medicines, no pagination needed
-        // unless the clinic has hundreds of different medicines.
-        $medicines = Medicine::orderBy('name')->get();
+        $userId = (int) $request->user()->id;
+        $query = Medicine::ownedBy($userId)->orderBy('name');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('unit', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('unit')) {
+            $query->where('unit', $request->unit);
+        }
+
+        if ($request->stock_status === 'in_stock') {
+            $query->where('quantity', '>', 10);
+        } elseif ($request->stock_status === 'low_stock') {
+            $query->whereBetween('quantity', [1, 10]);
+        } elseif ($request->stock_status === 'out_of_stock') {
+            $query->where('quantity', '<=', 0);
+        }
+
+        $totalMedicines = Medicine::ownedBy($userId)->count();
+        $lowStockCount = Medicine::ownedBy($userId)->whereBetween('quantity', [1, 10])->count();
+        $outOfStockCount = Medicine::ownedBy($userId)->where('quantity', '<=', 0)->count();
+        $inStockCount = Medicine::ownedBy($userId)->where('quantity', '>', 10)->count();
+        $dispensedToday = DB::table('visit_medicines')
+            ->join('visits', 'visit_medicines.visit_id', '=', 'visits.id')
+            ->join('medicines', 'visit_medicines.medicine_id', '=', 'medicines.id')
+            ->where('visits.recorded_by', $userId)
+            ->where('medicines.user_id', $userId)
+            ->whereDate('visits.visited_at', today())
+            ->sum('visit_medicines.quantity_given');
+
+        $units = Medicine::select('unit')
+            ->ownedBy($userId)
+            ->whereNotNull('unit')
+            ->distinct()
+            ->orderBy('unit')
+            ->pluck('unit');
+
+        $medicines = $query->paginate(10)->withQueryString();
 
         // Separate collection of low-stock medicines for an alert banner.
         // The view can show a warning if this collection is not empty.
-        $lowStock = $medicines->where('quantity', '<=', 10);
+        $lowStock = Medicine::ownedBy($userId)
+            ->whereBetween('quantity', [1, 10])
+            ->orderBy('quantity')
+            ->get();
 
-        return view('medicines.index', compact('medicines', 'lowStock'));
+        return view('medicines.index', compact(
+            'medicines',
+            'lowStock',
+            'totalMedicines',
+            'lowStockCount',
+            'outOfStockCount',
+            'inStockCount',
+            'dispensedToday',
+            'units'
+        ));
     }
 
     /**
@@ -76,10 +131,19 @@ class MedicineController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $userId = (int) $request->user()->id;
+
         // validate() automatically redirects back with errors if it fails.
         // The returned array contains only the validated fields.
         $validated = $request->validate([
-            'name'     => ['required', 'string', 'max:100', 'unique:medicines,name'],
+            'name'     => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('medicines', 'name')->where(fn ($query) =>
+                    $query->where('user_id', $userId)
+                ),
+            ],
             'unit'     => ['required', 'in:tablet,capsule,ml,sachet,piece'],
             'quantity' => ['required', 'integer', 'min:0'],
         ], [
@@ -89,7 +153,10 @@ class MedicineController extends Controller
             'quantity.min'  => 'Quantity cannot be negative.',
         ]);
 
-        Medicine::create($validated);
+        Medicine::create([
+            ...$validated,
+            'user_id' => $userId,
+        ]);
 
         return redirect()
             ->route('medicines.index')
@@ -106,9 +173,13 @@ class MedicineController extends Controller
      */
     public function show(Medicine $medicine): View
     {
+        $this->authorizeMedicine($medicine);
+
         // Load visits where this medicine was dispensed.
         // The pivot contains quantity_given for each visit.
-        $medicine->load(['visits.student']);
+        $medicine->load(['visits' => fn ($query) =>
+            $query->ownedBy((int) auth()->id())->with('student')
+        ]);
 
         return view('medicines.show', compact('medicine'));
     }
@@ -121,6 +192,8 @@ class MedicineController extends Controller
      */
     public function edit(Medicine $medicine): View
     {
+        $this->authorizeMedicine($medicine);
+
         return view('medicines.edit', compact('medicine'));
     }
 
@@ -136,8 +209,18 @@ class MedicineController extends Controller
      */
     public function update(Request $request, Medicine $medicine): RedirectResponse
     {
+        $this->authorizeMedicine($medicine);
+        $userId = (int) $request->user()->id;
+
         $validated = $request->validate([
-            'name'     => ['required', 'string', 'max:100', 'unique:medicines,name,' . $medicine->id],
+            'name'     => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('medicines', 'name')
+                    ->where(fn ($query) => $query->where('user_id', $userId))
+                    ->ignore($medicine->id),
+            ],
             'unit'     => ['required', 'in:tablet,capsule,ml,sachet,piece'],
             'quantity' => ['required', 'integer', 'min:0'],
         ], [
@@ -168,10 +251,17 @@ class MedicineController extends Controller
      */
     public function destroy(Medicine $medicine): RedirectResponse
     {
+        $this->authorizeMedicine($medicine);
+
         $medicine->delete();
 
         return redirect()
             ->route('medicines.index')
             ->with('success', 'Medicine removed from inventory.');
+    }
+
+    private function authorizeMedicine(Medicine $medicine): void
+    {
+        abort_unless($medicine->user_id === auth()->id(), 404);
     }
 }

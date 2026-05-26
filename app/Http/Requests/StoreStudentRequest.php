@@ -29,14 +29,18 @@ class StoreStudentRequest extends FormRequest
     {
         // When updating ($this->student is route-model-bound), ignore the current student's row.
         // When creating, $this->student is null so no row is ignored.
-        $studentId = $this->route('student')?->id;
+        $student = $this->route('student');
+        $studentId = $student?->id;
+        $userId = (int) $this->user()->id;
 
         return [
             'student_id'  => [
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('students', 'student_id')->ignore($studentId),
+                Rule::unique('students', 'student_id')
+                    ->where(fn ($query) => $query->where('user_id', $userId))
+                    ->ignore($studentId),
             ],
             'name'        => ['required', 'string', 'max:100'],
             'grade_level' => ['required', 'string', 'max:50'],
