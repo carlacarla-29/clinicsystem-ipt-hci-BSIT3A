@@ -1,6 +1,6 @@
 <aside class="main-sidebar">
     <div class="sidebar-brand">
-        <div class="sidebar-brand-mark">+</div>
+        <div class="sidebar-brand-mark"></div>
         <div>
             <a href="{{ route('dashboard') }}" class="sidebar-brand-title">Clinic</a>
             <p class="sidebar-brand-subtitle">Management System</p>

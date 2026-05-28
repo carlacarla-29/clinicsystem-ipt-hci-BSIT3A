@@ -8,27 +8,13 @@ use Illuminate\Validation\Rule;
 
 class StoreStudentRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     * Must return TRUE so authenticated users can submit the form.
-     */
     public function authorize(): bool
     {
         return true; // FIX: was 'false' — this caused 403 Forbidden on every submit
     }
 
-    /**
-     * Validation rules for creating OR updating a student.
-     *
-     * For update: the 'student_id' unique rule ignores the current record
-     * so editing a student doesn't fail with a false "duplicate" error.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
-        // When updating ($this->student is route-model-bound), ignore the current student's row.
-        // When creating, $this->student is null so no row is ignored.
         $student = $this->route('student');
         $studentId = $student?->id;
         $userId = (int) $this->user()->id;
@@ -50,11 +36,6 @@ class StoreStudentRequest extends FormRequest
         ];
     }
 
-    /**
-     * Human-readable error messages.
-     *
-     * @return array<string, string>
-     */
     public function messages(): array
     {
         return [

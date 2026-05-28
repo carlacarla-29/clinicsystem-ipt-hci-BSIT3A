@@ -661,12 +661,8 @@ textarea {
     text-decoration: none;
 }
 
-.sidebar-brand-mark {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 1rem;
-    font-size: 1.5rem;
-}
+
+
 
 .sidebar-brand-title {
     display: block;
