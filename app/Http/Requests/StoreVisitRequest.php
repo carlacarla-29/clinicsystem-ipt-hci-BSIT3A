@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Medicine;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreVisitRequest extends FormRequest
 {
@@ -50,5 +52,36 @@ class StoreVisitRequest extends FormRequest
             'visited_at.required' => 'Please provide the date and time of the visit.',
             'visited_at.date'     => 'The visit date is not a valid date.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $medicines = $this->input('medicines', []);
+
+            if (! is_array($medicines)) {
+                return;
+            }
+
+            foreach ($medicines as $medicineId => $quantity) {
+                if ((int) $quantity <= 0) {
+                    continue;
+                }
+
+                $medicine = Medicine::ownedBy((int) $this->user()->id)->find($medicineId);
+
+                if (! $medicine) {
+                    $validator->errors()->add("medicines.$medicineId", 'The selected medicine is invalid.');
+                    continue;
+                }
+
+                if ((int) $quantity > $medicine->quantity) {
+                    $validator->errors()->add(
+                        "medicines.$medicineId",
+                        "Only {$medicine->quantity} {$medicine->unit} available."
+                    );
+                }
+            }
+        });
     }
 }
