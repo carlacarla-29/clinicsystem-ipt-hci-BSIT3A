@@ -71,7 +71,7 @@
                         </div>
                     </div>
 
-                    {{-- Medicines (optional) --}}
+                    {{-- Medicines diri (optional) --}}
                     @if($medicines->isNotEmpty())
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Medicines Dispensed <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
